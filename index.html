@@ -1495,37 +1495,35 @@
 
 <script src="https://cdn.salondeletter.com/cdn/jquery/jquery-3.6.0.min.js"></script>
 <script>
-// CORS API 호출 가로채기
+// jQuery $.ajax를 직접 오버라이드하여 API 호출을 가로채기
 (function() {
-    var origOpen = XMLHttpRequest.prototype.open;
-    var origSend = XMLHttpRequest.prototype.send;
-    var blockedPatterns = ['/api/w/accessLog', '/api/w/devtoolLog', '/api/w/guestbook/list/'];
-    XMLHttpRequest.prototype.open = function(method, url) {
-        this._url = url;
-        this._blocked = blockedPatterns.some(function(p) { return url.indexOf(p) !== -1; });
-        if (!this._blocked) return origOpen.apply(this, arguments);
-    };
-    XMLHttpRequest.prototype.send = function() {
-        if (this._blocked) {
-            var self = this;
-            Object.defineProperty(self, 'readyState', { get: function() { return 4; } });
-            Object.defineProperty(self, 'status', { get: function() { return 200; } });
-            Object.defineProperty(self, 'responseText', { get: function() {
-                if (self._url && self._url.indexOf('guestbook') !== -1)
-                    return JSON.stringify({"status":"OK","message":"","data":[],"recordsTotal":null});
-                return JSON.stringify({"status":"OK"});
-            }});
+    var origAjax = $.ajax;
+    $.ajax = function(settings) {
+        var url = (typeof settings === 'string') ? settings : (settings.url || '');
+        if (url.indexOf('/api/') !== -1) {
+            // API 호출은 즉시 성공 응답을 반환
+            var fakeData = { status: 'OK', message: '', data: [], recordsTotal: null };
+            var deferred = $.Deferred();
             setTimeout(function() {
-                if (typeof self.onreadystatechange === 'function') self.onreadystatechange();
-                if (typeof self.onload === 'function') self.onload();
+                if (settings.success) settings.success(fakeData);
+                deferred.resolve(fakeData);
             }, 0);
-            return;
+            var promise = deferred.promise();
+            promise.abort = function(){};
+            return promise;
         }
-        return origSend.apply(this, arguments);
+        return origAjax.apply(this, arguments);
     };
-    $(document).ajaxSend(function(event, jqxhr, settings) {
-        if (blockedPatterns.some(function(p) { return settings.url.indexOf(p) !== -1; })) jqxhr.abort();
-    });
+})();
+</script>
+<script>
+// common.js의 에러 alert 차단
+(function() {
+    var origAlert = window.alert;
+    window.alert = function(msg) {
+        if (typeof msg === 'string' && (msg.indexOf('오류') !== -1 || msg.indexOf('에러') !== -1 || msg.indexOf('error') !== -1)) return;
+        origAlert.apply(window, arguments);
+    };
 })();
 </script>
 <script>
