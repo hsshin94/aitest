@@ -1,6 +1,18 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+    <script>
+    // 모든 스크립트보다 먼저 실행: 에러 alert 차단 + 전역 에러 핸들러
+    (function() {
+        var origAlert = window.alert;
+        window.alert = function(msg) {
+            if (typeof msg === 'string' && (msg.indexOf('오류') !== -1 || msg.indexOf('에러') !== -1 || msg.indexOf('error') !== -1 || msg.indexOf('Error') !== -1)) return;
+            origAlert.apply(window, arguments);
+        };
+        window.onerror = function() { return true; };
+        window.addEventListener('unhandledrejection', function(e) { e.preventDefault(); });
+    })();
+    </script>
     <base href="https://salondeletter.com/">
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -1513,16 +1525,6 @@
             return promise;
         }
         return origAjax.apply(this, arguments);
-    };
-})();
-</script>
-<script>
-// common.js의 에러 alert 차단
-(function() {
-    var origAlert = window.alert;
-    window.alert = function(msg) {
-        if (typeof msg === 'string' && (msg.indexOf('오류') !== -1 || msg.indexOf('에러') !== -1 || msg.indexOf('error') !== -1)) return;
-        origAlert.apply(window, arguments);
     };
 })();
 </script>
